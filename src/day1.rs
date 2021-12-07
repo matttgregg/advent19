@@ -2,15 +2,32 @@ use crate::utils;
 use std::time::SystemTime;
 
 pub fn solve() {
-   utils::print_day(1);
-   let data = include_str!("data/day1.dat");
-    let vals: Vec<i32> = data.lines().map(|c| c.parse::<i32>().unwrap()).collect();
+    utils::print_day(1);
+    let data = include_str!("data/day1.dat");
+    let modules: Vec<i32> = data.lines().map(|c| c.parse::<i32>().unwrap()).collect();
     let start = SystemTime::now();
-    let increases = increases(&vals);
-    let smoothed_increases = smoothed(&vals);
+    let all_fuel = modules.iter().map(fuel_for_module).collect::<Vec<i32>>();
+    let sum_fuel: i32 = all_fuel.iter().sum();
+    let all_recursed_fuel = modules.iter().map(recursed_fuel).collect::<Vec<i32>>();
+    let sum_recursed_fuel: i32 = all_recursed_fuel.iter().sum();
     let timed = SystemTime::now().duration_since(start).unwrap();
-    println!("Increases {} . Smoothed increases {} .", utils::fmt_bright(&increases), utils::fmt_bright(&smoothed_increases));
+    println!("Total fuel {}, including fuel+ {}",
+             utils::fmt_bright(&sum_fuel), utils::fmt_bright(&sum_recursed_fuel));
     utils::print_duration(timed);
+}
+
+fn fuel_for_module(module: &i32) -> i32 {
+    (*module / 3) - 2
+}
+
+fn recursed_fuel(module: &i32) -> i32 {
+    let mut total_fuel = fuel_for_module(module);
+    let mut next_fuel = fuel_for_module(&total_fuel);
+    while next_fuel > 0 {
+        total_fuel += next_fuel;
+        next_fuel = fuel_for_module(&next_fuel);
+    }
+    total_fuel
 }
 
 #[cfg(test)]
@@ -19,46 +36,12 @@ mod tests {
 
     #[test]
     fn test_data() {
-        let data = include_str!("./data/test_day1.dat");
-        let vals: Vec<i32> = data.lines().map(|c| c.parse::<i32>().unwrap()).collect();
-        let increases = increases(&vals);
-        let smoothed_increases = smoothed(&vals);
-        assert_eq!(increases, 7);
-        assert_eq!(smoothed_increases, 5);
+        assert_eq!(fuel_for_module(&12), 2);
+        assert_eq!(fuel_for_module(&14), 2);
+        assert_eq!(fuel_for_module(&1969), 654);
+        assert_eq!(fuel_for_module(&100756), 33583);
+        assert_eq!(recursed_fuel(&14), 2);
+        assert_eq!(recursed_fuel(&1969), 966);
+        assert_eq!(recursed_fuel(&100756), 50346);
     }
-}
-
-fn increases(data: &[i32]) -> i32 {
-    let mut last = data[0];
-    let mut increases = 0;
-    for (i, v) in data.iter().enumerate() {
-        if i > 0 && *v > last {
-            increases += 1;
-        }
-        last = *v;
-    }
-    increases
-}
-
-fn smoothed(data: &[i32]) -> i32 {
-    let mut a;
-    let mut b = data[0];
-    let mut c = data[0];
-    let mut last = 0;
-    let mut increases = 0;
-
-    for (i, v) in data.iter().enumerate() {
-        a = b;
-        b = c;
-        c = *v;
-        let total = a + b + c;
-        if i > 2 {
-            if total > last {
-                increases += 1;
-            }
-        }
-        last = total;
-    }
-
-    increases
 }
